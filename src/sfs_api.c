@@ -7,3 +7,10 @@
  ============================================================================
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <slack/std.h>
+#include <slack/list.h>
+
+
