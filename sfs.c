@@ -438,7 +438,8 @@ void sfs_fread(int fileID, char * buf, int length)
 
 	// Read the first block
 	read_blocks( db_index, 1, temp_buffer );
-	memcpy(buf_ptr, (temp_buffer + read_pointer), (BLOCKSIZE - read_pointer));
+	if (moreOneBlock) memcpy(buf_ptr, (temp_buffer + read_pointer), (BLOCKSIZE - read_pointer));
+	else memcpy(buf_ptr, (temp_buffer + read_pointer), length);
 	//	memcpy(buf_ptr, (temp_buffer + read_pointer), sizeof(temp_buffer+read_pointer));
 	length = length - (BLOCKSIZE - read_pointer);
 	buf_ptr = buf_ptr + (BLOCKSIZE - read_pointer);
