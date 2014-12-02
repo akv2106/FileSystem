@@ -127,58 +127,58 @@ int READBLOCK_size;
 int FAT_size;
 int BLOCKSIZE;
 
-int main(void)
-{
-	mksfs(1);
-	make_directory_table();
-	sfs_ls();
-	int hell = sfs_fopen("hello");
-	sfs_fopen("world");
-	printroot();
-	printfat();
-	printfdt();
-
-	char * a_w_buffer = "This is sparta!";
-	char a_buffer[BLOCKSIZE];
-	char read_buffer[BLOCKSIZE];
-
-	printf("Before writing: %s \n", a_w_buffer);
-
-	//	char test1[] = "Hello This is the answer";
-	//	int lengthoftest1 = sizeof(test1);
-
-	sfs_fwrite(hell, "Hello This is the answer", 24);
-	//	sfs_fwrite(hell, test1, sizeof(test1));
-	sfs_fwrite(hell, "Baby, I love", 13);
-
-	printf("After Writing\n");
-
-	close_disk();
-
-	mksfs(0);
-
-	sfs_fread(hell, read_buffer, 37);
-
-	printf("\nread : \n%s\n\n", read_buffer);
-
-	printroot();
-	sfs_remove("hello");
-	printroot();
-	sfs_remove("world");
-
-	printroot();
-	printfat();
-	printfdt();
-
-	//write_blocks(2, 1, (void *)a_w_buffer);
-	//read_blocks(2, 1, a_buffer);
-	//printf("%s\nFinished\n", a_buffer);
-
-	printf("HELLO THIS IS STARFLEET COMMAND\n");
-
-	close_disk();
-	return 0;
-}
+//int main(void)
+//{
+//	mksfs(1);
+//	make_directory_table();
+//	sfs_ls();
+//	int hell = sfs_fopen("hello");
+//	sfs_fopen("world");
+//	printroot();
+//	printfat();
+//	printfdt();
+//
+//	char * a_w_buffer = "This is sparta!";
+//	char a_buffer[BLOCKSIZE];
+//	char read_buffer[BLOCKSIZE];
+//
+//	printf("Before writing: %s \n", a_w_buffer);
+//
+//	//	char test1[] = "Hello This is the answer";
+//	//	int lengthoftest1 = sizeof(test1);
+//
+//	sfs_fwrite(hell, "Hello This is the answer", 24);
+//	//	sfs_fwrite(hell, test1, sizeof(test1));
+//	sfs_fwrite(hell, "Baby, I love", 13);
+//
+//	printf("After Writing\n");
+//
+//	close_disk();
+//
+//	mksfs(0);
+//
+//	sfs_fread(hell, read_buffer, 37);
+//
+//	printf("\nread : \n%s\n\n", read_buffer);
+//
+//	printroot();
+//	sfs_remove("hello");
+//	printroot();
+//	sfs_remove("world");
+//
+//	printroot();
+//	printfat();
+//	printfdt();
+//
+//	//write_blocks(2, 1, (void *)a_w_buffer);
+//	//read_blocks(2, 1, a_buffer);
+//	//printf("%s\nFinished\n", a_buffer);
+//
+//	printf("HELLO THIS IS STARFLEET COMMAND\n");
+//
+//	close_disk();
+//	return 0;
+//}
 
 
 /* Here Starts the functions */
@@ -190,6 +190,7 @@ void mksfs(int fresh)
 
 	if (fresh) {
 		init_fresh_disk("ROOT.sfs", BLOCKSIZE, SIZE_OF_DISK);
+		make_directory_table();
 
 		// Initialize files to empty in ROOT dir
 		int i;
@@ -230,7 +231,10 @@ void sfs_ls()
 	if (map_size(directory_table) == 0) printf("No files created as of yet! \n");
 
 	while (map_has_next(directory_table) == 1) {
-		char *filename = (char *)map_next(directory_table);
+		Mapping *mapping;
+		mapping = map_next_mapping(directory_table);
+		char *filename = mapping_key(mapping);
+		int fat_index = mapping_value(mapping);
 		int size = map_get(directory_table_sizes, filename);
 
 		printf("%s  %dBytes  \n", filename, size);
@@ -652,16 +656,16 @@ void printroot(void)
 	printf("filename\tfat_index\tsize\n");
 
 	while (map_has_next(directory_table) == 1) {
+		//		char *filename = (char*)map_next(directory_table);
+		//		int fat_index = (int)map_next(directory_table);
+
+		//		char *filename = (char *)map_get(directory_table, index);
+		// get the filename
+		//		FDT[fat_index].filename
 		Mapping *mapping;
 		mapping = map_next_mapping(directory_table);
 		char *filename = mapping_key(mapping);
 		int fat_index = mapping_value(mapping);
-//		char *filename = (char*)map_next(directory_table);
-//		int fat_index = (int)map_next(directory_table);
-
-//		char *filename = (char *)map_get(directory_table, index);
-		// get the filename
-//		FDT[fat_index].filename
 		int size = map_get(directory_table_sizes, filename);
 		printf("%s\t\t%d\t\t%d\n", filename, fat_index, size);
 	}
