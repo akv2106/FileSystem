@@ -126,8 +126,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	print_FDT();
-
 	sfs_fclose(fds[1]);
 
 	printf("File %s now has length %d and %s now has length %d:\n",
@@ -137,9 +135,6 @@ main(int argc, char **argv)
 	fds[1] = sfs_fopen(names[1]);
 
 	printf("before doing reads\n\n");
-	printroot();
-	print_FDT();
-	printfat();
 
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < filesize[i]; j += chunksize) {
@@ -154,9 +149,6 @@ main(int argc, char **argv)
 				exit(-1);
 			}
 			printf("before sfs_read\n\n");
-			printroot();
-			printfat();
-			print_FDT();
 			sfs_fread(fds[i], buffer, chunksize);
 			printf("After sfs_read\n\n");
 			/*
@@ -190,9 +182,6 @@ main(int argc, char **argv)
 	 * this doesn't cause a problem.
 	 */
 
-	printroot();
-	print_FDT_all();
-	printfat();
 	for (i = 0; i < 2; i++) {
 		sfs_fclose(fds[i]);
 		if (sfs_remove(names[i]) == -1) {
@@ -202,9 +191,6 @@ main(int argc, char **argv)
 		names[i] = NULL;
 	}
 
-	printfat();
-	print_FDT_all();
-	printroot();
 
 	/* Now just try to open up a bunch of files.
 	 */
@@ -215,15 +201,10 @@ main(int argc, char **argv)
 		if (fds[i] < 0) {
 			break;
 		}
-		print_FDT_all();
 		sfs_fclose(fds[i]);
-		print_FDT_all();
 		ncreate++;
 	}
 
-	printfat();
-	print_FDT_all();
-	printroot();
 
 	printf("Created %d files in the root directory\n", ncreate);
 
@@ -236,9 +217,6 @@ main(int argc, char **argv)
 		nopen++;
 	}
 
-	printfat();
-	print_FDT_all();
-	printroot();
 
 	printf("Simultaneously opened %d files\n", nopen);
 
@@ -248,9 +226,6 @@ main(int argc, char **argv)
 		sfs_fclose(fds[i]);
 	}
 
-	printfat();
-	print_FDT_all();
-	printroot();
 
 	/* Re-open in reverse order */
 	for (i = nopen-1; i >= 0; i--) {
@@ -260,9 +235,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	printfat();
-	print_FDT_all();
-	printroot();
 
 	/* Now test the file contents.
 	 */
@@ -420,9 +392,6 @@ main(int argc, char **argv)
 		 fds[1] = sfs_fopen(names[1]);
 
 		 printf("before doing reads\n\n");
-		 printroot();
-		 print_FDT();
-		 printfat();
 
 		 for (i = 0; i < 2; i++) {
 			 for (j = 0; j < filesize[i]; j += chunksize) {
@@ -437,9 +406,6 @@ main(int argc, char **argv)
 					 exit(-1);
 				 }
 				 printf("before sfs_read\n\n");
-				 printroot();
-				 printfat();
-				 print_FDT();
 				 sfs_fread(fds[i], buffer, chunksize);
 				 printf("After sfs_read\n\n");
 				 /*
@@ -473,9 +439,6 @@ main(int argc, char **argv)
 		  * this doesn't cause a problem.
 		  */
 
-		 printroot();
-		 print_FDT();
-		 printfat();
 		 for (i = 0; i < 2; i++) {
 			 sfs_fclose(fds[i]);
 			 if (sfs_remove(names[i]) == -1) {
@@ -485,9 +448,6 @@ main(int argc, char **argv)
 			 names[i] = NULL;
 		 }
 
-		 printfat();
-		 print_FDT();
-		 printroot();
 
 		 /* Now just try to open up a bunch of files.
 		  */
@@ -502,9 +462,6 @@ main(int argc, char **argv)
 			 ncreate++;
 		 }
 
-		 printfat();
-		 print_FDT();
-		 printroot();
 
 		 printf("Created %d files in the root directory\n", ncreate);
 
@@ -766,9 +723,6 @@ main(int argc, char **argv)
 			 fds[1] = sfs_fopen(names[1]);
 
 			 printf("before doing reads\n\n");
-			 printroot();
-			 print_FDT();
-			 printfat();
 
 			 for (i = 0; i < 2; i++) {
 				 for (j = 0; j < filesize[i]; j += chunksize) {
@@ -783,9 +737,6 @@ main(int argc, char **argv)
 						 exit(-1);
 					 }
 					 printf("before sfs_read\n\n");
-					 printroot();
-					 printfat();
-					 print_FDT();
 					 sfs_fread(fds[i], buffer, chunksize);
 					 printf("After sfs_read\n\n");
 					 /*
@@ -819,9 +770,6 @@ main(int argc, char **argv)
 			  * this doesn't cause a problem.
 			  */
 
-			 printroot();
-			 print_FDT();
-			 printfat();
 			 for (i = 0; i < 2; i++) {
 				 sfs_fclose(fds[i]);
 				 if (sfs_remove(names[i]) == -1) {
@@ -831,9 +779,6 @@ main(int argc, char **argv)
 				 names[i] = NULL;
 			 }
 
-			 printfat();
-			 print_FDT();
-			 printroot();
 
 			 /* Now just try to open up a bunch of files.
 			  */
@@ -848,9 +793,6 @@ main(int argc, char **argv)
 				 ncreate++;
 			 }
 
-			 printfat();
-			 print_FDT();
-			 printroot();
 
 			 printf("Created %d files in the root directory\n", ncreate);
 
@@ -992,9 +934,6 @@ main(int argc, char **argv)
 	  */
 	 mksfs(0);
 
-	 printroot();
-	 printfat();
-	 print_FDT_all();
 
 	 for (i = 0; i < nopen; i++) {
 		 fds[i] = sfs_fopen(names[i]);

@@ -27,11 +27,6 @@ void sfs_fread(int fileID, char *buf, int length); // read chars from disk into 
 void sfs_fseek(int fileID, int loc); // seek to location from beginning
 int sfs_remove(char *file);     // removes a file from the filesystem
 
-// TO DELETE
-
-//void printfat(void);
-//void printfdt(void);
-//void printroot(void);
 
 #define SIZE_OF_DISK 1000 // in bytes
 #define MAXFILES 100
@@ -672,28 +667,6 @@ int get_read_block(size)
 	return block;
 }
 
-void printroot(void)
-{
-	printf("Number of files in root directory: %d\n", map_size(directory_table));
-
-	printf("\nRoot Directory\n");
-	int i;
-	printf("filename\tfat_index\tsize\n");
-
-	while (map_has_next(directory_table) == 1) {
-		//		char *filename = (char*)map_next(directory_table);
-		//		int fat_index = (int)map_next(directory_table);
-
-		//		char *filename = (char *)map_get(directory_table, index);
-		// get the filename
-		//		FDT[fat_index].filename
-		Mapping *mapping;
-		mapping = map_next_mapping(directory_table);
-		char *filename = mapping_key(mapping);
-		int fat_index = mapping_value(mapping);
-		int size = map_get(directory_table_sizes, filename);
-		printf("%s\t\t%d\t\t%d\n", filename, fat_index, size);
-	}
 
 
 	//	for (i = 0; i < MAXFILES; i++) {
@@ -701,46 +674,8 @@ void printroot(void)
 	//			printf("%s\t\t%d\t\t%d\t\t%d\n", ROOT.dir_table[i].filename, ROOT.dir_table[i].fat_index,ROOT.dir_table[i].size, ROOT.dir_table[i].empty);
 	//		}
 	//	}
-}
 
-void printfat(void)
-{
-	printf("\nFAT\n");
-	int i;
-	printf("db_index\tnext\n");
-	for (i = 0; i < SIZE_OF_DISK; i++) {
-		if ( FAT.fat_nodes[i].db_index != EMPTY ) {
-			printf("%d\t\t%d\n", FAT.fat_nodes[i].db_index,
-					FAT.fat_nodes[i].next);
-		}
-	}
-}
 
-void print_FDT_all(void)
-{
-	printf("\nFile Descriptor Table\n");
-	printf("filename\troot_index\topened\twr_ptr\trd_ptr\n");
-	int i;
-	for (i = 0; i < MAXFILES; i++) {
-		//		if(FDT[i].opened == 1) {
-		if (map_get(directory_table, FDT[i].filename) != NULL) {
-			int root_index = map_get(directory_table, FDT[i].filename);
-			printf("%s\t\t%d\t\t%d\t%d\t%d\n", FDT[i].filename, root_index,
-					FDT[i].opened, FDT[i].write_ptr, FDT[i].read_ptr);
-		}
-	}
-}
 
-void print_FDT(void) {
-	printf("\nFile Descriptor Table\n");
-	printf("filename\troot_index\topened\twr_ptr\trd_ptr\n");
-	int i;
-	for (i = 0; i < MAXFILES; i++) {
-		if(FDT[i].opened == 1) {
-			int root_index = map_get(directory_table, FDT[i].filename);
-			printf("%s\t\t%d\t\t%d\t%d\t%d\n", FDT[i].filename, root_index,
-					FDT[i].opened, FDT[i].write_ptr, FDT[i].read_ptr);
-		}
-	}
-}
+
 
