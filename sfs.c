@@ -250,13 +250,17 @@ void sfs_ls()
 int sfs_fopen(char * name)
 {
 	// Returns fileID in FDT
-	int nfileID = isopened(name);
+	int nfileID = is_opened_in_FDT(name);
 	if ( nfileID != -1) {
 		// if already open
 		return nfileID;
 	}
+	if ((nfileID = exists_in_FDT(name)) != -1) {
+		FDT[nfileID].opened = 1;
+		return nfileID;
+	}
 
-	//	int root_dir_index = searchfile(name);
+	// File doesn't exist at all in FDT
 
 	// Add file to file descriptor table (fdt)
 	strcpy( FDT[files_open].filename, name );
@@ -264,8 +268,6 @@ int sfs_fopen(char * name)
 	FDT[files_open].read_ptr = 0;
 	nfileID = files_open;
 	++files_open;
-	//printf("root cursor: %d", root.next_cursor);
-	//printf("root_dir_index: %d", root_dir_index);
 
 	// if file doesn't exist in directory_table
 	if ( map_get(directory_table, name) == NULL ) {
@@ -510,7 +512,7 @@ int sfs_remove(char * file)
 	}
 
 	// Remove from FDT
-	int fdt_index = isopened(file);
+	int fdt_index = exists_in_FDT(file);
 	if ( fdt_index != -1 ) {
 		FDT[ fdt_index ].opened = 0;
 	}
@@ -532,10 +534,10 @@ int sfs_remove(char * file)
 
 /*
  * Returns -1 if not opened or
- * returns FileID if opened
+ * returns FileID if it exists in FDT and is opened
  * */
 
-int isopened(char * name)
+int exists_in_FDT(char * name)
 {
 	int i;
 	int result;
@@ -543,7 +545,28 @@ int isopened(char * name)
 		//printf("filename: \"%s\", \"%s\"\n", FDT[i].filename, name);
 		result = strcmp( FDT[i].filename, name );
 		//printf("result:%d\n\n", result);
-		if ( result == 0 ) {
+		//		if ( result == 0 ) {
+		//			return i;
+		//		}
+		if ( result == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int is_opened_in_FDT(char * name)
+{
+	int i;
+	int result;
+	for(i = 0; i < MAXFILES; i++) {
+		//printf("filename: \"%s\", \"%s\"\n", FDT[i].filename, name);
+		result = strcmp( FDT[i].filename, name );
+		//printf("result:%d\n\n", result);
+		//		if ( result == 0 ) {
+		//			return i;
+		//		}
+		if ( result == 0 && FDT[i].opened == 1) {
 			return i;
 		}
 	}
@@ -692,8 +715,22 @@ void printfat(void)
 	}
 }
 
-void printfdt(void)
+void print_FDT_all(void)
 {
+	printf("\nFile Descriptor Table\n");
+	printf("filename\troot_index\topened\twr_ptr\trd_ptr\n");
+	int i;
+	for (i = 0; i < MAXFILES; i++) {
+		//		if(FDT[i].opened == 1) {
+		if (map_get(directory_table, FDT[i].filename) != NULL) {
+			int root_index = map_get(directory_table, FDT[i].filename);
+			printf("%s\t\t%d\t\t%d\t%d\t%d\n", FDT[i].filename, root_index,
+					FDT[i].opened, FDT[i].write_ptr, FDT[i].read_ptr);
+		}
+	}
+}
+
+void print_FDT(void) {
 	printf("\nFile Descriptor Table\n");
 	printf("filename\troot_index\topened\twr_ptr\trd_ptr\n");
 	int i;
@@ -705,3 +742,4 @@ void printfdt(void)
 		}
 	}
 }
+
