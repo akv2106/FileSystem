@@ -39,21 +39,51 @@ int sfs_remove(char *file);     // removes a file from the filesystem
 #define MAX_FILENAME_LENGTH 25
 
 /*
- * Data structures
+ * In memory data structures
  */
-typedef struct
-{
-	char filename[MAX_FILENAME_LENGTH];
-	int fat_index;
-	int size;           // In bytes
-	int empty;			// boolean
-} file;
+//typedef struct
+//{
+//	char filename[MAX_FILENAME_LENGTH];
+//	int fat_index;
+//	int size;           // In bytes
+//	int empty;			// boolean
+//} file;
 
-typedef struct
-{
-	file dir_table[MAXFILES];
-	int next_cursor;
-} root_directory;
+// Map between filenames and FAT indexes
+//typedef struct
+//{
+//	file dir_table[MAXFILES];
+//	int next;
+//} directory_table;
+
+
+/*
+ * All maps are of type: string, int
+ */
+Map *directory_table;
+Map *directory_table_sizes, *directory_table_empty;
+// Counter for next item
+int directory_table_counter = 0;
+
+int make_directory_table () {
+	if (!(directory_table = map_create(NULL))) {
+		return EXIT_FAILURE;
+	}
+	if (!(directory_table_sizes = map_create(NULL))) {
+		return EXIT_FAILURE;
+	}
+	if (!(directory_table_empty = map_create(NULL))) {
+		return EXIT_FAILURE;
+	}
+	else return EXIT_SUCCESS;
+}
+
+// Free directory table and related maps
+void destroy_directory_table () {
+	map_destroy(&directory_table);
+	map_destroy(&directory_table_sizes);
+	map_destroy(&directory_table_empty);
+}
 
 typedef struct
 {
@@ -64,13 +94,13 @@ typedef struct
 typedef struct
 {
 	FAT_node fat_nodes[SIZE_OF_DISK];
-	int next_cursor;
+	int next;
 } FAT_table;
 
 typedef struct
 {
 	char filename[MAX_FILENAME_LENGTH];
-	int root_index; // index into the root directory
+	//	int root_index; // index into the root directory
 	int opened; // boolean
 	int write_ptr;
 	int read_ptr;
@@ -84,72 +114,77 @@ typedef struct
 } freeblocklist;
 
 
-/* Global Variables */
-root_directory ROOT;
+/*
+ * Initialized structures
+ */
+//directory_table ROOT;
 FAT_table FAT;
 freeblocklist FREE_BLOCKS_LIST;
 file_descriptor_table_node FDT[MAXFILES];
 
-int opened_files = 0;
+int files_open = 0;
 int READBLOCK_size;
 int FAT_size;
 int BLOCKSIZE;
 
-//int main(void)
-//{
-//	mksfs(1);
-//	sfs_ls();
-//	int hell = sfs_fopen("hello");
-//	sfs_fopen("world");
-//	printroot();
-//	printfat();
-//	printfdt();
-//
-//	char * a_w_buffer = "This is sparta!";
-//	char a_buffer[BLOCKSIZE];
-//	char read_buffer[BLOCKSIZE];
-//
-//	printf("Before writing: %s \n", a_w_buffer);
-//
-//	//	char test1[] = "Hello This is the answer";
-//	//	int lengthoftest1 = sizeof(test1);
-//
-//	sfs_fwrite(hell, "Hello This is the answer", 24);
-//	//	sfs_fwrite(hell, test1, sizeof(test1));
-//	sfs_fwrite(hell, "Baby, I love", 13);
-//
-//	printf("After Writing\n");
-//
-//	close_disk();
-//
-//	mksfs(0);
-//
-//	sfs_fread(hell, read_buffer, 37);
-//
-//	printf("\nread : \n%s\n\n", read_buffer);
-//
-//	sfs_remove("hello");
-//	sfs_remove("world");
-//
-//	printroot();
-//	printfat();
-//	printfdt();
-//
-//	//write_blocks(2, 1, (void *)a_w_buffer);
-//	//read_blocks(2, 1, a_buffer);
-//	//printf("%s\nFinished\n", a_buffer);
-//
-//	printf("HELLO THIS IS STARFLEET COMMAND\n");
-//
-//	close_disk();
-//	return 0;
-//}
+int main(void)
+{
+	mksfs(1);
+	make_directory_table();
+	sfs_ls();
+	int hell = sfs_fopen("hello");
+	sfs_fopen("world");
+	printroot();
+	printfat();
+	printfdt();
+
+	char * a_w_buffer = "This is sparta!";
+	char a_buffer[BLOCKSIZE];
+	char read_buffer[BLOCKSIZE];
+
+	printf("Before writing: %s \n", a_w_buffer);
+
+	//	char test1[] = "Hello This is the answer";
+	//	int lengthoftest1 = sizeof(test1);
+
+	sfs_fwrite(hell, "Hello This is the answer", 24);
+	//	sfs_fwrite(hell, test1, sizeof(test1));
+	sfs_fwrite(hell, "Baby, I love", 13);
+
+	printf("After Writing\n");
+
+	close_disk();
+
+	mksfs(0);
+
+	sfs_fread(hell, read_buffer, 37);
+
+	printf("\nread : \n%s\n\n", read_buffer);
+
+	printroot();
+	sfs_remove("hello");
+	printroot();
+	sfs_remove("world");
+
+	printroot();
+	printfat();
+	printfdt();
+
+	//write_blocks(2, 1, (void *)a_w_buffer);
+	//read_blocks(2, 1, a_buffer);
+	//printf("%s\nFinished\n", a_buffer);
+
+	printf("HELLO THIS IS STARFLEET COMMAND\n");
+
+	close_disk();
+	return 0;
+}
 
 
 /* Here Starts the functions */
 void mksfs(int fresh)
 {
-	READBLOCK_size     = sizeof(root_directory);
+	READBLOCK_size     = sizeof(directory_table);
 	FAT_size     = sizeof(FAT_table);
 	BLOCKSIZE   = ( READBLOCK_size > FAT_size ? READBLOCK_size : FAT_size );
 
@@ -158,10 +193,10 @@ void mksfs(int fresh)
 
 		// Initialize files to empty in ROOT dir
 		int i;
-		for(i = 1; i < MAXFILES; i++) {
-			ROOT.dir_table[i].empty = 1;
-		}
-		ROOT.next_cursor = 0;
+		//		for(i = 1; i < MAXFILES; i++) {
+		//			ROOT.dir_table[i].empty = 1;
+		//		}
+		//		ROOT.next = 0;
 		// Initialize all blocks to empty
 		for(i = 0; i < SIZE_OF_DISK; i++) {
 			FREE_BLOCKS_LIST.freeblocks[i] = 0;
@@ -170,14 +205,16 @@ void mksfs(int fresh)
 			FAT.fat_nodes[i].db_index = EMPTY;
 			FAT.fat_nodes[i].next = EMPTY;
 		}
-		FAT.next_cursor = 0;
 
-		write_blocks( 0, 1, (void *)&ROOT );
+		// Setting the FAT next to be a certain value
+		FAT.next = 1;
+
+		write_blocks( 0, 1, (void *)&directory_table );
 		write_blocks( 1, 1, (void *)&FAT );
 		write_blocks(SIZE_OF_DISK-1, 1, (void *)&FREE_BLOCKS_LIST);
 	} else {
 		init_disk("ROOT.sfs", BLOCKSIZE, SIZE_OF_DISK);
-		read_blocks( 0, 1, (void *)&ROOT );
+		read_blocks( 0, 1, (void *)&directory_table );
 		read_blocks( 1, 1, (void *)&FAT );
 		read_blocks( SIZE_OF_DISK-1, 1, (void *)&FREE_BLOCKS_LIST );
 	}
@@ -188,59 +225,77 @@ void sfs_ls()
 	//root_dir root, *root_ptr;
 	//read_blocks(0, 1, (void *)root_ptr);
 
-	int i;
-	for (i = 0; ROOT.dir_table[i].empty == 0; i++) {
-		int filesize = ROOT.dir_table[i].size;
-		printf("%s  %dBytes  \n", ROOT.dir_table[i].filename,
-				filesize);
+	printf("Number of files in root directory: %d\n", map_size(directory_table));
+
+	if (map_size(directory_table) == 0) printf("No files created as of yet! \n");
+
+	while (map_has_next(directory_table) == 1) {
+		char *filename = (char *)map_next(directory_table);
+		int size = map_get(directory_table_sizes, filename);
+
+		printf("%s  %dBytes  \n", filename, size);
 	}
+	//	int i;
+	//	for (i = 0; ROOT.dir_table[i].empty == 0; i++) {
+	//		int filesize = ROOT.dir_table[i].size;
+	//		printf("%s  %dBytes  \n", ROOT.dir_table[i].filename,
+	//				filesize);
+	//	}
 }
 
 int sfs_fopen(char * name)
 {
+	// Returns fileID in FDT
 	int nfileID = isopened(name);
-	//printf("nfileID:%d\n", nfileID);
 	if ( nfileID != -1) {
+		// if already open
 		return nfileID;
 	}
 
-	int root_dir_index = searchfile(name);
+	//	int root_dir_index = searchfile(name);
 
 	// Add file to file descriptor table (fdt)
-	strcpy( FDT[opened_files].filename, name );
-	FDT[opened_files].opened = 1;
-	FDT[opened_files].read_ptr = 0;
-	nfileID = opened_files;
-	++opened_files;
+	strcpy( FDT[files_open].filename, name );
+	FDT[files_open].opened = 1;
+	FDT[files_open].read_ptr = 0;
+	nfileID = files_open;
+	++files_open;
 	//printf("root cursor: %d", root.next_cursor);
 	//printf("root_dir_index: %d", root_dir_index);
 
-	if ( root_dir_index == -1 ) {
+	// if file doesn't exist in directory_table
+	if ( map_get(directory_table, name) == NULL ) {
 		// Set write pointer to zero since new file
-		FDT[opened_files].write_ptr = 0;
+		FDT[files_open].write_ptr = 0;
 		//printf("FAT cursor: %d\n", FAT.next_cursor);
 
 		// Add new file to root_dir and FAT
-		FAT.fat_nodes[FAT.next_cursor].db_index = get_next_freeblock();
-		FAT.fat_nodes[FAT.next_cursor].next = -1;
-		ROOT.dir_table[ ROOT.next_cursor ].empty = 0;
-		strcpy( ROOT.dir_table[ ROOT.next_cursor ].filename, name );
-		ROOT.dir_table[ ROOT.next_cursor ].fat_index = FAT.next_cursor;
-		ROOT.dir_table[ ROOT.next_cursor ].size = 0;
+		FAT.fat_nodes[FAT.next].db_index = get_next_freeblock();
+		FAT.fat_nodes[FAT.next].next = -1;
+		//		ROOT.dir_table[ ROOT.next ].empty = 0;
+		//		strcpy( ROOT.dir_table[ ROOT.next ].filename, name );
+		// Copy into directory_table and associated maps
+		map_add(directory_table, name, FAT.next);
+		//		ROOT.dir_table[ ROOT.next ].fat_index = FAT.next;
+		//		ROOT.dir_table[ ROOT.next ].size = 0;
+		map_add(directory_table_sizes, name, 0);
 
 		//printroot();
 		//printfat();
 
-		FDT[nfileID].root_index = ROOT.next_cursor;
+		//		FDT[nfileID].root_index = ROOT.next;
 
 		if (get_next_fat_cursor() == -1) exit(1);
-		if (get_next_root_cursor() == -1) exit(1);
-		write_blocks( 0, 1, (void *)&ROOT );
+		//		if (get_next_root_cursor() == -1) exit(1);
+		if (map_size(directory_table) == MAXFILES) exit(1);
+		//		write_blocks( 0, 1, (void *)&ROOT );
+		write_blocks( 0, 1, (void *)&directory_table );
 		write_blocks( 1, 1, (void *)&FAT );
 		write_blocks(SIZE_OF_DISK-1, 1, (void *)&FREE_BLOCKS_LIST);
 	} else {
 		// Set write pointer at end of file
-		FDT[nfileID].write_ptr = ROOT.dir_table[ root_dir_index ].size;
+		//		FDT[nfileID].write_ptr = ROOT.dir_table[ root_dir_index ].size;
+		FDT[nfileID].write_ptr = map_get(directory_table_sizes, name);
 	}
 	return nfileID;
 
@@ -248,7 +303,7 @@ int sfs_fopen(char * name)
 
 void sfs_fclose(int fileID)
 {
-	if (opened_files <= fileID) {
+	if (files_open <= fileID) {
 		fprintf(stderr, "No such file %d", fileID);
 	} else {
 		FDT[ fileID ].opened = 0;
@@ -258,15 +313,17 @@ void sfs_fclose(int fileID)
 
 void sfs_fwrite(int fileID, char * buf, int length)
 {
-	if (opened_files <= fileID) {
+	if (files_open <= fileID) {
 		fprintf(stderr, "No such file %d is opened\n", fileID);
 		return;
 	}
 
 	int nlength = length;
 
-	int root_index = FDT[fileID].root_index;
-	int fat_index = ROOT.dir_table[ root_index ].fat_index;
+	//	int root_index = FDT[fileID].root_index;
+	// get the associated FAT node from the directory table, which uses the FDT to get the key
+	char *filename = FDT[fileID].filename;
+	int fat_index = map_get(directory_table, filename);
 	int db_index = FAT.fat_nodes[ fat_index ].db_index;
 
 	while( FAT.fat_nodes[ fat_index ].next != -1 ) {
@@ -305,9 +362,9 @@ void sfs_fwrite(int fileID, char * buf, int length)
 
 			db_index = get_next_freeblock();
 
-			FAT.fat_nodes[ fat_index ].next = FAT.next_cursor;
-			FAT.fat_nodes[ FAT.next_cursor ].db_index = db_index;
-			fat_index = FAT.next_cursor;
+			FAT.fat_nodes[ fat_index ].next = FAT.next;
+			FAT.fat_nodes[ FAT.next ].db_index = db_index;
+			fat_index = FAT.next;
 			FAT.fat_nodes[ fat_index ].next = -1;
 			get_next_fat_cursor();
 
@@ -324,10 +381,13 @@ void sfs_fwrite(int fileID, char * buf, int length)
 		}
 	}
 
-	ROOT.dir_table[ root_index ].size += nlength;
-	FDT[ fileID ].write_ptr = ROOT.dir_table[ root_index ].size;
+	int current_size = map_get(directory_table_sizes, filename);
+	int new_size = current_size + nlength;
+	map_put(directory_table_sizes, filename, new_size);
+	//	ROOT.dir_table[ root_index ].size += nlength;
+	FDT[ fileID ].write_ptr = new_size;
 
-	write_blocks( 0, 1, (void *)&ROOT );
+	write_blocks( 0, 1, (void *)&directory_table );
 	write_blocks( 1, 1, (void *)&FAT );
 	write_blocks(SIZE_OF_DISK-1, 1, (void *)&FREE_BLOCKS_LIST);
 
@@ -337,7 +397,7 @@ void sfs_fwrite(int fileID, char * buf, int length)
 
 void sfs_fread(int fileID, char * buf, int length)
 {
-	if (opened_files <= fileID && FDT[ fileID ].opened == 0 ) {
+	if (files_open <= fileID && FDT[ fileID ].opened == 0 ) {
 		fprintf(stderr, "No such file %d is opened\n", fileID);
 		return;
 	}
@@ -346,8 +406,11 @@ void sfs_fread(int fileID, char * buf, int length)
 
 	char temp_buffer[BLOCKSIZE];
 
-	int root_index = FDT[fileID].root_index;
-	int fat_index = ROOT.dir_table[ root_index ].fat_index;
+	//	int root_index = FDT[fileID].root_index;
+	//	int fat_index = ROOT.dir_table[ root_index ].fat_index;
+	// get the associated FAT node from the directory table, which uses the FDT to get the key
+	char *filename = FDT[fileID].filename;
+	int fat_index = map_get(directory_table, filename);
 	int db_index;
 	db_index = FAT.fat_nodes[ fat_index ].db_index;
 
@@ -406,7 +469,7 @@ void sfs_fread(int fileID, char * buf, int length)
 
 void sfs_fseek(int fileID, int loc)
 {
-	if (opened_files <= fileID) {
+	if (files_open <= fileID) {
 		fprintf(stderr, "No such file %d is opened\n", fileID);
 		return;
 	}
@@ -418,13 +481,20 @@ void sfs_fseek(int fileID, int loc)
 int sfs_remove(char * file)
 {
 	int temp_fat_index;
-	int root_index = searchfile(file);
-	if ( root_index == -1 ) return -1;
+	//	int root_index = searchfile(file);
+	//	if ( root_index == -1 ) return -1;
+
 	int fat_index;
 
 	// Remove from ROOT dir
-	ROOT.dir_table[ root_index ].empty = 1;
-	fat_index = ROOT.dir_table[ root_index ].fat_index;
+	//	ROOT.dir_table[ root_index ].empty = 1;
+
+	// get the FAT index
+	fat_index = map_get(directory_table, file);
+	if (fat_index == NULL) {
+		printf("File doesn't exist in directory table.\n");
+		return -1; // if the file doesn't exist in directory_table
+	}
 
 	// Remove from the FAT
 	while( FAT.fat_nodes[ fat_index ].next != EMPTY ) {
@@ -438,6 +508,18 @@ int sfs_remove(char * file)
 	int fdt_index = isopened(file);
 	if ( fdt_index != -1 ) {
 		FDT[ fdt_index ].opened = 0;
+	}
+
+	// Remove from directory_table
+	if ((map_remove(directory_table, file)) != 0) {
+		printf("Error removing file from directory table. \n");
+		return EXIT_FAILURE;
+	}
+
+	// Remove from sizes
+	if ((map_remove(directory_table_sizes, file)) != 0) {
+		printf("Error removing file from sizes table. \n");
+		return EXIT_FAILURE;
 	}
 
 	return 0;
@@ -469,16 +551,16 @@ int isopened(char * name)
  * Returns -1
  * */
 
-int searchfile(char * name)
-{
-	int i;
-	for(i = 0; i < MAXFILES; i++) {
-		if ( strcmp(ROOT.dir_table[i].filename, name) == 0 ) {
-			return i;
-		}
-	}
-	return -1;
-}
+//int searchfile(char * name)
+//{
+//	int i;
+//	for(i = 0; i < MAXFILES; i++) {
+//		if ( strcmp(ROOT.dir_table[i].filename, name) == 0 ) {
+//			return i;
+//		}
+//	}
+//	return -1;
+//}
 
 int get_next_freeblock()
 {
@@ -497,15 +579,15 @@ int get_next_freeblock()
 
 int get_next_fat_cursor()
 {
-	FAT.next_cursor += 1;
-	if (FAT.next_cursor > SIZE_OF_DISK - 1) {
+	FAT.next += 1;
+	if (FAT.next > SIZE_OF_DISK - 1) {
 		int z;
 		for (z = 0; z < SIZE_OF_DISK; z++) {
 			if (FAT.fat_nodes[z].db_index == EMPTY) {
 				break;
 			}
 		}
-		FAT.next_cursor = z;
+		FAT.next = z;
 		if ( z == SIZE_OF_DISK ) {
 			printf("WARNING DISK IS FULL; OPERATION CANNOT COMPLETE\n");
 			return -1;
@@ -514,24 +596,24 @@ int get_next_fat_cursor()
 	return 0;
 }
 
-int get_next_root_cursor()
-{
-	ROOT.next_cursor += 1;
-	if (ROOT.next_cursor > MAXFILES - 1) {
-		int z;
-		for (z = 0; z < MAXFILES; z++) {
-			if (ROOT.dir_table[z].empty == 1) {
-				break;
-			}
-		}
-		ROOT.next_cursor = z;
-		if (z == MAXFILES) {
-			printf("WARNING MAX FILES CAPACITY REACHED\n");
-			return -1;
-		}
-	}
-	return 0;
-}
+//int get_next_root_cursor()
+//{
+//	ROOT.next += 1;
+//	if (ROOT.next > MAXFILES - 1) {
+//		int z;
+//		for (z = 0; z < MAXFILES; z++) {
+//			if (ROOT.dir_table[z].empty == 1) {
+//				break;
+//			}
+//		}
+//		ROOT.next = z;
+//		if (z == MAXFILES) {
+//			printf("WARNING MAX FILES CAPACITY REACHED\n");
+//			return -1;
+//		}
+//	}
+//	return 0;
+//}
 
 /*
  * Returns the pointer in the last block
@@ -563,14 +645,33 @@ int get_read_block(size)
 
 void printroot(void)
 {
+	printf("Number of files in root directory: %d\n", map_size(directory_table));
+
 	printf("\nRoot Directory\n");
 	int i;
-	printf("filename\tfat_index\tsize\tempty\n");
-	for (i = 0; i < MAXFILES; i++) {
-		if ( ROOT.dir_table[i].empty == 0 ) {
-			printf("%s\t\t%d\t\t%d\t\t%d\n", ROOT.dir_table[i].filename, ROOT.dir_table[i].fat_index,ROOT.dir_table[i].size, ROOT.dir_table[i].empty);
-		}
+	printf("filename\tfat_index\tsize\n");
+
+	while (map_has_next(directory_table) == 1) {
+		Mapping *mapping;
+		mapping = map_next_mapping(directory_table);
+		char *filename = mapping_key(mapping);
+		int fat_index = mapping_value(mapping);
+//		char *filename = (char*)map_next(directory_table);
+//		int fat_index = (int)map_next(directory_table);
+
+//		char *filename = (char *)map_get(directory_table, index);
+		// get the filename
+//		FDT[fat_index].filename
+		int size = map_get(directory_table_sizes, filename);
+		printf("%s\t\t%d\t\t%d\n", filename, fat_index, size);
 	}
+
+
+	//	for (i = 0; i < MAXFILES; i++) {
+	//		if ( ROOT.dir_table[i].empty == 0 ) {
+	//			printf("%s\t\t%d\t\t%d\t\t%d\n", ROOT.dir_table[i].filename, ROOT.dir_table[i].fat_index,ROOT.dir_table[i].size, ROOT.dir_table[i].empty);
+	//		}
+	//	}
 }
 
 void printfat(void)
@@ -593,7 +694,8 @@ void printfdt(void)
 	int i;
 	for (i = 0; i < MAXFILES; i++) {
 		if(FDT[i].opened == 1) {
-			printf("%s\t\t%d\t\t%d\t%d\t%d\n", FDT[i].filename, FDT[i].root_index,
+			int root_index = map_get(directory_table, FDT[i].filename);
+			printf("%s\t\t%d\t\t%d\t%d\t%d\n", FDT[i].filename, root_index,
 					FDT[i].opened, FDT[i].write_ptr, FDT[i].read_ptr);
 		}
 	}
