@@ -313,6 +313,7 @@ void sfs_fclose(int fileID)
 		fprintf(stderr, "No such file %d", fileID);
 	} else {
 		FDT[ fileID ].opened = 0;
+		FDT[ fileID ].read_ptr = 0;
 	}
 	return;
 }
