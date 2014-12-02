@@ -14,7 +14,7 @@
  * do not _require_ that you support this many files. This is just to
  * test the behavior of your code.
  */
-#define MAX_FD 100 // changed from 100 to 5 for testing
+#define MAX_FD 50
 
 /* The maximum number of bytes we'll try to write to a file. If you
  * support much shorter or larger files for some reason, feel free to
@@ -269,7 +269,6 @@ main(int argc, char **argv)
 	  * do not _require_ that you support this many files. This is just to
 	  * test the behavior of your code.
 	  */
-#define MAX_FD 5 // changed from 100 to 5 for testing
 
 	 /* The maximum number of bytes we'll try to write to a file. If you
 	  * support much shorter or larger files for some reason, feel free to
@@ -600,7 +599,6 @@ main(int argc, char **argv)
 		  * do not _require_ that you support this many files. This is just to
 		  * test the behavior of your code.
 		  */
-#define MAX_FD 5 // changed from 100 to 5 for testing
 
 		 /* The maximum number of bytes we'll try to write to a file. If you
 		  * support much shorter or larger files for some reason, feel free to
